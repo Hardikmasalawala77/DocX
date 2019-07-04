@@ -3700,7 +3700,107 @@ namespace Xceed.Words.NET
         }
       }
     }
+        public int ReplaceFirstOccurrenceText(string searchValue,
+                             string newValue,
+                             bool trackChanges = false,
+                             RegexOptions options = RegexOptions.None,
+                             Formatting newFormatting = null,
+                             Formatting matchFormatting = null,
+                             MatchFormattingOptions fo = MatchFormattingOptions.SubsetMatch,
+                             bool escapeRegEx = true,
+                             bool useRegExSubstitutions = false,
+                             bool removeEmptyParagraph = true)
+        {
+            var mc = Regex.Matches(this.Text, escapeRegEx ? Regex.Escape(searchValue) : searchValue, options);
 
+            // Loop through the matches in reverse order
+            foreach (Match m in mc.Cast<Match>().Reverse())
+            {
+                // Assume the formatting matches until proven otherwise.
+                bool formattingMatch = true;
+
+                // Does the user want to match formatting?
+                if (matchFormatting != null)
+                {
+                    // The number of characters processed so far
+                    int processed = 0;
+
+                    do
+                    {
+                        // Get the next run effected
+                        var run = GetFirstRunEffectedByEdit(m.Index + processed);
+
+                        // Get this runs properties
+                        var rPr = run.Xml.Element(XName.Get("rPr", DocX.w.NamespaceName));
+
+                        if (rPr == null)
+                        {
+                            rPr = new Formatting().Xml;
+                        }
+
+                        /* 
+                         * Make sure that every formatting element in f.xml is also in this run,
+                         * if this is not true, then their formatting does not match.
+                         */
+                        if (!HelperFunctions.ContainsEveryChildOf(matchFormatting.Xml, rPr, fo))
+                        {
+                            formattingMatch = false;
+                            break;
+                        }
+
+                        // We have processed some characters, so update the counter.
+                        processed += run.Value.Length;
+
+                    } while (processed < m.Length);
+                    return 1;//Updated
+                }
+
+                // If the formatting matches, do the replace.
+                if (formattingMatch)
+                {
+                    //perform RegEx substitutions. Only named groups are not supported. Everything else is supported. However character escapes are not covered.
+                    if (useRegExSubstitutions && !string.IsNullOrEmpty(newValue))
+                    {
+                        newValue = newValue.Replace("$&", m.Value);
+                        if (m.Groups.Count > 0)
+                        {
+                            int lastcap = 0;
+                            for (int k = 0; k < m.Groups.Count; k++)
+                            {
+                                var g = m.Groups[k];
+                                if ((g == null) || (g.Value == ""))
+                                    continue;
+                                newValue = newValue.Replace("$" + k.ToString(), g.Value);
+                                lastcap = k;
+                            }
+                            newValue = newValue.Replace("$+", m.Groups[lastcap].Value);
+                        }
+                        if (m.Index > 0)
+                        {
+                            newValue = newValue.Replace("$`", this.Text.Substring(0, m.Index));
+                        }
+                        if ((m.Index + m.Length) < this.Text.Length)
+                        {
+                            newValue = newValue.Replace("$'", this.Text.Substring(m.Index + m.Length));
+                        }
+                        newValue = newValue.Replace("$_", this.Text);
+                        newValue = newValue.Replace("$$", "$");
+                        
+                    }
+
+                    if (!string.IsNullOrEmpty(newValue))
+                    {
+                        this.InsertText(m.Index + m.Length, newValue, trackChanges, newFormatting);
+                    }
+                    if (m.Length > 0)
+                    {
+                        this.RemoveText(m.Index, m.Length, trackChanges, removeEmptyParagraph);
+                    }
+                    return 1;//Updated
+                }
+            }
+            return 0;//Updated
+        }
     public void ReplaceText( string findPattern, Func<string, string> regexMatchHandler, bool trackChanges = false, RegexOptions options = RegexOptions.None, Formatting newFormatting = null, Formatting matchFormatting = null, MatchFormattingOptions fo = MatchFormattingOptions.SubsetMatch, bool removeEmptyParagraph = true )
     {
       var matchCol = Regex.Matches( this.Text, findPattern, options );
