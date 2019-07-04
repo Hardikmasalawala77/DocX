@@ -357,7 +357,74 @@ namespace Xceed.Words.NET
         }
       }
     }
+/// <summary>
+/// Replace single text based on only first occurace of match case
+/// </summary>
+/// <param name="searchValue"></param>
+/// <param name="newValue"></param>
+/// <param name="trackChanges"></param>
+/// <param name="options"></param>
+/// <param name="newFormatting"></param>
+/// <param name="matchFormatting"></param>
+/// <param name="fo"></param>
+/// <param name="escapeRegEx"></param>
+/// <param name="useRegExSubstitutions"></param>
+/// <param name="removeEmptyParagraph"></param>
+     public virtual void ReplaceFirstOccurrenceText(string searchValue,
+                                  string newValue,
+                                  bool trackChanges = false,
+                                  RegexOptions options = RegexOptions.None,
+                                  Formatting newFormatting = null,
+                                  Formatting matchFormatting = null,
+                                  MatchFormattingOptions fo = MatchFormattingOptions.SubsetMatch,
+                                  bool escapeRegEx = true,
+                                  bool useRegExSubstitutions = false,
+                                  bool removeEmptyParagraph = true)
+     {
+         if (string.IsNullOrEmpty(searchValue))
+         {
+             throw new ArgumentException("searchValue cannot be null or empty.", "searchValue");
+         }
+         if (newValue == null)
+         {
+             throw new ArgumentException("newValue cannot be null.", "newValue");
+         }
 
+         // ReplaceFirstOccurrenceText in Headers of the document.
+         var headerList = new List<Header>() { this.Document.Headers.First, this.Document.Headers.Even, this.Document.Headers.Odd };
+         foreach (Header h in headerList)
+         {
+             if (h != null)
+             {
+                 foreach (Paragraph p in h.Paragraphs)
+                 {
+                     p.ReplaceFirstOccurrenceText(searchValue, newValue, trackChanges, options, newFormatting, matchFormatting, fo, escapeRegEx, useRegExSubstitutions, removeEmptyParagraph);
+                 }
+             }
+         }
+
+         // ReplaceFirstOccurrenceText int main body of document.
+         foreach (Paragraph p in this.Paragraphs)
+         {
+             if (p.ReplaceFirstOccurrenceText(searchValue, newValue, trackChanges, options, newFormatting, matchFormatting, fo, escapeRegEx, useRegExSubstitutions, removeEmptyParagraph) == 1)
+             {
+                 break;
+             }
+         }
+
+         // ReplaceFirstOccurrenceText in Footers of the document.
+         var footerList = new List<Footer> { this.Document.Footers.First, this.Document.Footers.Even, this.Document.Footers.Odd };
+         foreach (Footer f in footerList)
+         {
+             if (f != null)
+             {
+                 foreach (Paragraph p in f.Paragraphs)
+                 {
+                     p.ReplaceFirstOccurrenceText(searchValue, newValue, trackChanges, options, newFormatting, matchFormatting, fo, escapeRegEx, useRegExSubstitutions, removeEmptyParagraph);
+                 }
+             }
+         }
+     }
     /// <summary>
     /// 
     /// </summary>
